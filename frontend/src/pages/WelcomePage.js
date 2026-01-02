@@ -142,7 +142,7 @@ function WelcomePage() {
                             <a href="https://github.com/Manoj-APJ/org-expense-tracker/issues" target="_blank" rel="noopener noreferrer">
                                 🛠️ Contribute / Feature Request
                             </a>
-                            <a href="https://github.com/Manoj-APJ/org-expense-tracker/discussions" target="_blank" rel="noopener noreferrer">
+                            <a href="https://github.com/Manoj-APJ/org-expense-tracker/issues" target="_blank" rel="noopener noreferrer">
                                 📝 Leave Feedback
                             </a>
                         </div>
@@ -177,14 +177,31 @@ function WelcomePage() {
             {/* Footer */}
             <footer className="welcome-footer">
                 <div className="footer-content">
-                    <p>Created by <strong>Manoj</strong> — with ❤️ for coding</p>
+                    <p>
+                        Created by{" "}
+                        <a
+                            href="https://manojtalent.netlify.app/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="View Manoj's Portfolio"
+                        >
+                            <strong>Manoj</strong> 🔗
+                        </a>{" "}
+                        — with ❤️ for coding
+                    </p>
+
                     <div className="footer-links">
-                        <a href="https://github.com/Manoj-APJ" target="_blank" rel="noopener noreferrer">
+                        <a
+                            href="https://github.com/Manoj-APJ"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
                             GitHub
                         </a>
                     </div>
                 </div>
             </footer>
+
         </div>
     );
 }

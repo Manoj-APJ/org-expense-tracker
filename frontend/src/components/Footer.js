@@ -8,7 +8,7 @@ const Footer = () => {
                 <p className="footer-credit">Built by Manoj with ❤️ for coding</p>
                 <div className="footer-links">
                     <a
-                        href="https://manoj.portfolio"
+                        href="manojtalent.netlify.app"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="footer-link"
@@ -16,7 +16,7 @@ const Footer = () => {
                         Portfolio
                     </a>
                     <a
-                        href="https://linkedin.com/in/manoj"
+                        href="https://www.linkedin.com/in/manoj-mannam/"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="footer-link"
@@ -25,7 +25,7 @@ const Footer = () => {
                     </a>
                     <div className="github-link-wrapper">
                         <a
-                            href="https://github.com/manoj"
+                            href="https://github.com/Manoj-APJ"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="footer-link github-link"
