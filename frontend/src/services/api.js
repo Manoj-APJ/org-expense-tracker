@@ -9,7 +9,18 @@ const getAuthHeaders = () => {
 };
 
 const handleResponse = async (response) => {
-  const data = await response.json();
+  const text = await response.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (err) {
+    console.error('Failed to parse JSON response:', text);
+    if (text.startsWith('<!DOCTYPE html>')) {
+      throw new Error(`Server returned HTML instead of JSON. This often happens if the API route is incorrect or the proxy failed. (URL: ${response.url})`);
+    }
+    throw new Error('Invalid JSON response from server');
+  }
+
   if (!response.ok) {
     throw new Error(data.error || 'An error occurred');
   }
@@ -88,7 +99,7 @@ export const getPendingMemberships = async () => {
 
 export const approveMembership = async (membershipId) => {
   const response = await fetch(`${API_BASE_URL}/organizations/approve-membership/${membershipId}`, {
-    method: 'POST',
+    method: 'PATCH',
     headers: getAuthHeaders(),
   });
   return handleResponse(response);
@@ -96,7 +107,7 @@ export const approveMembership = async (membershipId) => {
 
 export const rejectMembership = async (membershipId) => {
   const response = await fetch(`${API_BASE_URL}/organizations/reject-membership/${membershipId}`, {
-    method: 'POST',
+    method: 'PATCH',
     headers: getAuthHeaders(),
   });
   return handleResponse(response);
@@ -128,6 +139,13 @@ export const getMyTransactions = async () => {
   return handleResponse(response);
 };
 
+export const getAllTransactions = async () => {
+  const response = await fetch(`${API_BASE_URL}/transactions/org-transactions`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(response);
+};
+
 export const getPendingTransactions = async () => {
   const response = await fetch(`${API_BASE_URL}/transactions/pending`, {
     headers: getAuthHeaders(),
@@ -136,16 +154,16 @@ export const getPendingTransactions = async () => {
 };
 
 export const approveTransaction = async (transactionId) => {
-  const response = await fetch(`${API_BASE_URL}/transactions/approve/${transactionId}`, {
-    method: 'POST',
+  const response = await fetch(`${API_BASE_URL}/transactions/${transactionId}/approve`, {
+    method: 'PATCH',
     headers: getAuthHeaders(),
   });
   return handleResponse(response);
 };
 
 export const rejectTransaction = async (transactionId) => {
-  const response = await fetch(`${API_BASE_URL}/transactions/reject/${transactionId}`, {
-    method: 'POST',
+  const response = await fetch(`${API_BASE_URL}/transactions/${transactionId}/reject`, {
+    method: 'PATCH',
     headers: getAuthHeaders(),
   });
   return handleResponse(response);

@@ -123,10 +123,10 @@ router.get('/list', authenticateToken, async (req, res) => {
   }
 });
 
-// Admin: Get pending membership requests
-router.get('/pending-memberships', authenticateToken, requireAdmin, async (req, res) => {
+// Admin/Creator: Get pending membership requests
+router.get('/pending-memberships', authenticateToken, async (req, res) => {
   try {
-    const result = await pool.query(`
+    let query = `
       SELECT om.id, om.organization_id, om.user_id, om.requested_at,
              o.name as organization_name,
              u.name as user_name, u.email as user_email
@@ -134,9 +134,17 @@ router.get('/pending-memberships', authenticateToken, requireAdmin, async (req, 
       JOIN organizations o ON om.organization_id = o.id
       JOIN users u ON om.user_id = u.id
       WHERE om.status = 'pending'
-      ORDER BY om.requested_at DESC
-    `);
+    `;
+    let params = [];
 
+    // If not global admin, only show requests for organizations they created
+    if (req.user.role !== 'admin') {
+      query += ` AND o.created_by = $1`;
+      params.push(req.user.id);
+    }
+
+    query += ` ORDER BY om.requested_at DESC`;
+    const result = await pool.query(query, params);
     res.json({ memberships: result.rows });
   } catch (error) {
     console.error('Get pending memberships error:', error);
@@ -144,19 +152,32 @@ router.get('/pending-memberships', authenticateToken, requireAdmin, async (req, 
   }
 });
 
-// Admin: Approve membership
-router.post('/approve-membership/:membershipId', authenticateToken, requireAdmin, async (req, res) => {
+// Approve membership (Creator or Admin only)
+router.patch('/approve-membership/:membershipId', authenticateToken, async (req, res) => {
   try {
     const { membershipId } = req.params;
+
+    // Authorization check: Must be creator of the org the membership belongs to
+    const checkResult = await pool.query(`
+      SELECT om.*, o.created_by
+      FROM organization_members om
+      JOIN organizations o ON om.organization_id = o.id
+      WHERE om.id = $1
+    `, [membershipId]);
+
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Membership request not found' });
+    }
+
+    const membership = checkResult.rows[0];
+    if (req.user.role !== 'admin' && membership.created_by !== req.user.id) {
+      return res.status(403).json({ error: 'Only the organization creator can approve memberships' });
+    }
 
     const result = await pool.query(
       'UPDATE organization_members SET status = $1, approved_at = CURRENT_TIMESTAMP WHERE id = $2 AND status = $3 RETURNING *',
       ['approved', membershipId, 'pending']
     );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Membership request not found or already processed' });
-    }
 
     res.json({ membership: result.rows[0] });
   } catch (error) {
@@ -165,25 +186,47 @@ router.post('/approve-membership/:membershipId', authenticateToken, requireAdmin
   }
 });
 
-// Admin: Reject membership
-router.post('/reject-membership/:membershipId', authenticateToken, requireAdmin, async (req, res) => {
+// Reject membership (Creator or Admin only)
+router.patch('/reject-membership/:membershipId', authenticateToken, async (req, res) => {
   try {
     const { membershipId } = req.params;
+
+    // Authorization check
+    const checkResult = await pool.query(`
+      SELECT om.*, o.created_by
+      FROM organization_members om
+      JOIN organizations o ON om.organization_id = o.id
+      WHERE om.id = $1
+    `, [membershipId]);
+
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Membership request not found' });
+    }
+
+    const membership = checkResult.rows[0];
+    if (req.user.role !== 'admin' && membership.created_by !== req.user.id) {
+      return res.status(403).json({ error: 'Only the organization creator can reject memberships' });
+    }
 
     const result = await pool.query(
       'UPDATE organization_members SET status = $1 WHERE id = $2 AND status = $3 RETURNING *',
       ['rejected', membershipId, 'pending']
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Membership request not found or already processed' });
-    }
-
     res.json({ membership: result.rows[0] });
   } catch (error) {
     console.error('Reject membership error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
+});
+
+// Fallback POST routes for compatibility, redirecting to PATCH
+router.post('/approve-membership/:membershipId', authenticateToken, async (req, res) => {
+  res.redirect(307, `/api/organizations/approve-membership/${req.params.membershipId}`);
+});
+
+router.post('/reject-membership/:membershipId', authenticateToken, async (req, res) => {
+  res.redirect(307, `/api/organizations/reject-membership/${req.params.membershipId}`);
 });
 
 // Admin: Set organization balance

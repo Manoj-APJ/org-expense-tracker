@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import WelcomePage from './pages/WelcomePage';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -45,6 +46,10 @@ function App() {
     <Router>
       <Routes>
         <Route
+          path="/"
+          element={user ? <Navigate to={user.role === 'admin' ? '/admin' : '/dashboard'} /> : <WelcomePage />}
+        />
+        <Route
           path="/login"
           element={user ? <Navigate to={user.role === 'admin' ? '/admin' : '/dashboard'} /> : <Login onLogin={handleLogin} />}
         />
@@ -60,7 +65,6 @@ function App() {
           path="/admin"
           element={user && user.role === 'admin' ? <AdminDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
         />
-        <Route path="/" element={<Navigate to={user ? (user.role === 'admin' ? '/admin' : '/dashboard') : '/login'} />} />
       </Routes>
     </Router>
   );

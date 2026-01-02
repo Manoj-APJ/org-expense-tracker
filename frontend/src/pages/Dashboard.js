@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { getMyOrganization, createOrganization, listOrganizations, joinOrganization, submitTransaction, getMyTransactions } from '../services/api';
+import { getMyOrganization, createOrganization, listOrganizations, joinOrganization, submitTransaction, getAllTransactions, approveTransaction, rejectTransaction, getPendingMemberships, approveMembership, rejectMembership } from '../services/api';
 
 function Dashboard({ user, onLogout }) {
   const [organization, setOrganization] = useState(null);
   const [organizations, setOrganizations] = useState([]);
   const [transactions, setTransactions] = useState([]);
+  const [pendingMemberships, setPendingMemberships] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showCreateOrg, setShowCreateOrg] = useState(false);
   const [showJoinOrg, setShowJoinOrg] = useState(false);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
-  
+
   // Form states
   const [orgName, setOrgName] = useState('');
   const [initialBalance, setInitialBalance] = useState('');
@@ -31,11 +32,18 @@ function Dashboard({ user, onLogout }) {
       const [orgData, orgsData, transData] = await Promise.all([
         getMyOrganization(),
         listOrganizations(),
-        getMyTransactions()
+        getAllTransactions()
       ]);
       setOrganization(orgData.organization);
       setOrganizations(orgsData.organizations);
       setTransactions(transData.transactions);
+
+      // If user is creator or admin, fetch pending memberships
+      const isCreator = orgData.organization && (user.id === orgData.organization.created_by || user.role === 'admin');
+      if (isCreator) {
+        const membershipsData = await getPendingMemberships();
+        setPendingMemberships(membershipsData.memberships);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -101,6 +109,54 @@ function Dashboard({ user, onLogout }) {
     }
   };
 
+  const handleApprove = async (transactionId) => {
+    setError('');
+    setSuccess('');
+    try {
+      await approveTransaction(transactionId);
+      setSuccess('Transaction approved successfully!');
+      loadData();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleReject = async (transactionId) => {
+    setError('');
+    setSuccess('');
+    try {
+      await rejectTransaction(transactionId);
+      setSuccess('Transaction rejected.');
+      loadData();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleApproveMembership = async (membershipId) => {
+    setError('');
+    setSuccess('');
+    try {
+      await approveMembership(membershipId);
+      setSuccess('Membership approved successfully!');
+      loadData();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleRejectMembership = async (membershipId) => {
+    setError('');
+    setSuccess('');
+    try {
+      await rejectMembership(membershipId);
+      setSuccess('Membership rejected.');
+      loadData();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const getStatusBadge = (status) => {
     const badges = {
       pending: <span className="badge badge-pending">Pending</span>,
@@ -109,6 +165,8 @@ function Dashboard({ user, onLogout }) {
     };
     return badges[status] || status;
   };
+
+  const isCreator = organization && (user.id === organization.created_by || user.role === 'admin');
 
   if (loading) {
     return <div style={{ padding: '40px', textAlign: 'center' }}>Loading...</div>;
@@ -120,7 +178,7 @@ function Dashboard({ user, onLogout }) {
         <div className="header-content">
           <h1>Expense Tracker</h1>
           <div className="header-actions">
-            <span>Welcome, {user.name}</span>
+            <span>Welcome, {user.name} {user.role === 'admin' && '(Admin)'}</span>
             <button className="btn btn-secondary" onClick={onLogout}>Logout</button>
           </div>
         </div>
@@ -132,11 +190,15 @@ function Dashboard({ user, onLogout }) {
 
         {/* Organization Section */}
         <div className="card">
-          <h2 style={{ marginBottom: '16px' }}>Organization</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2>Organization</h2>
+            {user.role === 'admin' && <span className="badge badge-approved">Admin View</span>}
+          </div>
           {organization ? (
             <div>
               <p><strong>Name:</strong> {organization.name}</p>
               <p><strong>Balance:</strong> ${parseFloat(organization.balance || 0).toFixed(2)}</p>
+              {user.id === organization.created_by && <p style={{ marginTop: '8px' }}><span className="badge badge-approved">You are the Creator</span></p>}
             </div>
           ) : (
             <div>
@@ -152,6 +214,50 @@ function Dashboard({ user, onLogout }) {
             </div>
           )}
         </div>
+
+        {/* Membership Requests Section for Creators */}
+        {isCreator && pendingMemberships.length > 0 && (
+          <div className="card">
+            <h2 style={{ marginBottom: '16px' }}>Pending Membership Requests</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Email</th>
+                  <th>Requested At</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendingMemberships.map((membership) => (
+                  <tr key={membership.id}>
+                    <td>{membership.user_name}</td>
+                    <td>{membership.user_email}</td>
+                    <td>{new Date(membership.requested_at).toLocaleDateString()}</td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          className="btn btn-success"
+                          onClick={() => handleApproveMembership(membership.id)}
+                          style={{ padding: '4px 8px', fontSize: '12px' }}
+                        >
+                          Approve
+                        </button>
+                        <button
+                          className="btn btn-danger"
+                          onClick={() => handleRejectMembership(membership.id)}
+                          style={{ padding: '4px 8px', fontSize: '12px' }}
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* Create Organization Form */}
         {showCreateOrg && (
@@ -271,9 +377,9 @@ function Dashboard({ user, onLogout }) {
           </div>
         )}
 
-        {/* My Transactions */}
+        {/* Organization Transactions */}
         <div className="card">
-          <h2 style={{ marginBottom: '16px' }}>My Transactions</h2>
+          <h2 style={{ marginBottom: '16px' }}>Organization Transactions</h2>
           {transactions.length === 0 ? (
             <div className="empty-state">No transactions yet</div>
           ) : (
@@ -284,8 +390,9 @@ function Dashboard({ user, onLogout }) {
                   <th>Type</th>
                   <th>Amount</th>
                   <th>Description</th>
-                  <th>Organization</th>
+                  <th>Submitted By</th>
                   <th>Status</th>
+                  {isCreator && <th>Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -295,8 +402,20 @@ function Dashboard({ user, onLogout }) {
                     <td style={{ textTransform: 'capitalize' }}>{t.type}</td>
                     <td>${parseFloat(t.amount).toFixed(2)}</td>
                     <td>{t.description}</td>
-                    <td>{t.organization_name}</td>
+                    <td>{t.user_name || 'Unknown'}</td>
                     <td>{getStatusBadge(t.status)}</td>
+                    {isCreator && (
+                      <td>
+                        {t.status === 'pending' ? (
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button className="btn btn-success" onClick={() => handleApprove(t.id)} style={{ padding: '4px 8px', fontSize: '12px' }}>Approve</button>
+                            <button className="btn btn-danger" onClick={() => handleReject(t.id)} style={{ padding: '4px 8px', fontSize: '12px' }}>Reject</button>
+                          </div>
+                        ) : (
+                          <span style={{ color: '#999', fontSize: '12px' }}>Processed</span>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

@@ -1,0 +1,98 @@
+.professional-footer {
+    width: 100%;
+    padding: 32px 20px;
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(8px);
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    margin-top: auto;
+}
+
+.footer-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.footer-credit {
+    font-size: 14px;
+    color: #627d98;
+    font-weight: 500;
+}
+
+.footer-links {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.footer-link {
+    color: #334e68;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.footer-link:hover {
+    color: #2b6cb0;
+}
+
+.github-link-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.tooltip {
+    visibility: hidden;
+    width: 200px;
+    background-color: #102a43;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 8px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    /* Position above the link */
+    left: 50%;
+    margin-left: -100px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 12px;
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #102a43 transparent transparent transparent;
+}
+
+.github-link-wrapper:hover .tooltip {
+    visibility: visible;
+    opacity: 1;
+}
+
+@media (max-width: 600px) {
+    .footer-content {
+        gap: 20px;
+    }
+
+    .footer-links {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 16px;
+    }
+}
